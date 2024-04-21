@@ -17,8 +17,7 @@ def q(pr):
     return x1, y1, x2, y2
 
 
-m = {}
-def 切片方和(img, roi, n, merge=True):
+def 切片方和(img, roi, n, m, merge=True):
     # 替代 (a[roi].flatten()**n).sum()，需要保证img是不变量
     d = id(img)
     if (d, n) not in m:
@@ -29,19 +28,20 @@ def 切片方和(img, roi, n, merge=True):
         img2 = np.zeros(shape=s, dtype=img.dtype)
         img2[1:, 1:] = img
         m[d, n] = np.cumsum(np.cumsum(img2, axis=1), axis=0)
-    res = _切片方和(d, roi, n)
+    res = _切片方和(d, roi, n ,m)
     if merge:
         res = res.sum()
     return res
 
 
-def _切片方和(d, roi, n):
+def _切片方和(d, roi, n ,m):
     前缀和 = m[d, n]
     a, b = roi
     return 前缀和[a.stop, b.stop]-前缀和[a.start, b.stop]-前缀和[a.stop, b.start]+前缀和[a.start, b.start]
 
 
 def ya(原图, 目标图, i, verbose=False):
+    m={}
     w, h = 原图.shape[:2]
     差值图 = 原图-目标图
     def 代价(粒子群):
@@ -49,12 +49,12 @@ def ya(原图, 目标图, i, verbose=False):
             x1, y1, x2, y2 = q(pr)
             roi = slice(x1, x2), slice(y1, y2)
             size = (x2-x1)*(y2-y1)
-            t = 切片方和(原图, roi, 1, False)
+            t = 切片方和(原图, roi, 1, m, False)
             # 平均颜色 = t / size
-            原se = 切片方和(差值图, roi, 2)
+            原se = 切片方和(差值图, roi, 2, m)
             # _原se = ((原图[roi]-目标图[roi]).flatten()**2).sum()
             # print(-0.1 < 原se - _原se < 0.1)
-            新se = 切片方和(原图, roi, 2) - (t/size*t).sum()
+            新se = 切片方和(原图, roi, 2, m) - (t/size*t).sum()
             return 新se-原se
         return [*map(粒子代价, 粒子群)]
     options = {'c1': 0.5, 'c2': 0.3, 'w': 0.9}
